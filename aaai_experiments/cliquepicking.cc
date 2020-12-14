@@ -245,7 +245,7 @@ void findcliques(vector<vector<int>> &g, int n, vector<unordered_set<int>> &cliq
 }
 
 // recursive computation of phi using memoization
-// note that the formula we use is more or less the complement of the one in the main paper (both work fine)
+// note that the formula we use is more or less the complement of the one in the main paper (both work equally well)
 // this recursive formula is presented in the proof of Thm. 4 in the supplementary material
 Z recphi(vector<int> &fp, int i, int c, vector<Z> &phimemo, vector<Z> &fmemo)
 {
