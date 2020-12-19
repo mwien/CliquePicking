@@ -5,7 +5,7 @@ The implementation of the algorithm that we used for the experiments in [1] is c
 g++ -O3 -march=native -lgmp -lgmpxx cliquepicking.cc
 ```
 
-The solver can be run with `./a.out < <input-file>` and expects a graph in the format defined below.
+The solver can be run with `./a.out < <input-file>` and expects a chordal graph in the format defined below.
 
 # Experimental Setup
 
