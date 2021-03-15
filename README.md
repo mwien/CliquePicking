@@ -1,12 +1,12 @@
 # The Clique-Picking Algorithm
-This repository contains an implementation of the Clique-Picking algorithm that we have proposed at AAAI 2021 [1] for counting the number Markov Equivalent DAGs in polynomial time. Moreover, we give an implementation of the polynomial-time algorithm for uniformly sampling a DAG from a Markov Equivalence Class. The paper and its appendix is available on arXiv [2].
+This repository contains an implementation of the Clique-Picking algorithm that we have proposed at AAAI 2021 [1] for counting the number of Markov Equivalent DAGs in polynomial time. Moreover, we give an implementation of the polynomial-time algorithm for uniformly sampling a DAG from a Markov Equivalence Class. The paper and its appendix is available on arXiv [2].
 
 1. Marcel Wienöbst, Max Bannach, and Maciej Liśkiewicz: *Polynomial-Time Algorithms for Counting and Sampling Markov Equivalent DAGs* (AAAI 2021)
 2. [arXiv version](https://arxiv.org/abs/2012.09679)
 
 ## Graph Usage
 
-These algorithms are implemented in Julia and use the LightGraphs package. In particular, the graphs are represented as SimpleDiGraphs.
+The algorithms are implemented in Julia using the LightGraphs package. In particular, the graphs are represented as SimpleDiGraphs.
     A graph can be loaded from a file or from standard input using the readgraph function from utils.jl. The input has to have the following format: The first line contains the number of vertices n and edges m, this is followed by blank line. It ends with m lines containing the edges of the graph.
 
 If the graph is undirected as in the example, one may give every edge
@@ -37,7 +37,7 @@ The input graph above is discussed in Example 3 and 5 in [1,2] and given in the 
 </p>
 
 
-## Compute number of Markov equivalent DAGs
+## Compute the size of a Markov Equivalence Class
 
 1. Load a graph G (usually this should be a CPDAG). The parameter true is used because the graph is undirected, remove this for partially directed graphs.
     ```julia
@@ -66,7 +66,7 @@ The input graph above is discussed in Example 3 and 5 in [1,2] and given in the 
     ```
     The output is a directed graph.
 
-    This function internally does a precomputation step before sampling. Therefore, when sampling several DAGs from one input graph G, it can be more efficient to do the precomputation only once.  In this case do
+    This function internally does a precomputation step before sampling. Therefore, when sampling several DAGs from one input graph G, it can be more efficient to do the precomputation only once.  In this case do:
     ```julia
     julia> pre = precomputation(G);
     julia> sampleDAG(G, pre)
@@ -75,4 +75,5 @@ The input graph above is discussed in Example 3 and 5 in [1,2] and given in the 
 
 ## AAAI 2021 Experiments
 In [1], we used the C++ implementation for counting, which can be found under [aaai_experiments](/aaai_experiments). This folder also contains some of the graphs we used in the experiments.
+
    The Julia implementation is a factor <2 slower compared to the C++ code.
