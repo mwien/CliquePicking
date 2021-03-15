@@ -37,10 +37,9 @@ The input graph above is discussed in Example 3 and 5 in [1,2] and given in the 
 </p>
 
 
-## Compute number of Markov equivalence classes
+## Compute number of Markov equivalent DAGs
 
-1. Load a graph G (the parameter true is used because the graph is
-    undirected, remove this for partially directed graphs).
+1. Load a graph G (usually this should be a CPDAG). The parameter true is used because the graph is undirected, remove this for partially directed graphs.
     ```julia
     julia> G = readgraph("example.in", true)
     {6, 22} directed simple Int64 graph
@@ -52,10 +51,9 @@ The input graph above is discussed in Example 3 and 5 in [1,2] and given in the 
     ```
     The number of Markov equivalence classes is 54.
 
-## Sample a DAG
+## Uniformly sample a DAG
 
-1. Load a graph G (the parameter true is used because the graph is
-    undirected, remove this for partially directed graphs).
+1. Load a graph G (usually this should be a CPDAG). The parameter true is used because the graph is undirected, remove this for partially directed graphs.
     ```julia
     julia> G = readgraph("example.in", true)
     {6, 22} directed simple Int64 graph
