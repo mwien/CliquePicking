@@ -6,7 +6,7 @@ This repository contains an implementation of the Clique-Picking algorithm that 
 
 ## Graph Usage
 
-These algorithms are implementated in Julia and use the LightGraphs package. In particular, the graphs are represented as SimpleDiGraphs.
+These algorithms are implemented in Julia and use the LightGraphs package. In particular, the graphs are represented as SimpleDiGraphs.
     A graph can be loaded from a file or from standard input using the readgraph function from utils.jl. The input has to have the following format: The first line contains the number of vertices n and edges m, this is followed by blank line. It ends with m lines containing the edges of the graph.
 
 If the graph is undirected as in the example, one may give every edge
