@@ -232,9 +232,12 @@ function sampleDAG(G, pre)
     D = copy(G)
     D.ne = 0
     for i = 1:n
-        time[i] == 0 && continue
+        if time[i] == 0
+            D.ne += length(D.fadjlist[i])
+            continue
+        end
         filter!(j->time[j] > time[i], D.fadjlist[i])
-        filter!(j->time[j] != 0 && time[j] < time[i], D.badjlist[i])
+        filter!(j->time[j] == 0 || time[j] < time[i], D.badjlist[i])
         D.ne += length(D.fadjlist[i])
     end
 
