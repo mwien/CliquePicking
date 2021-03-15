@@ -33,7 +33,7 @@ julia> readgraph(stdin, true)
 
 The input graph above is discussed in Example 3 and 5 in [1,2] and given in the file "example.in". It looks as follows:
 <p align="center">
-  <a><img width="60%" src="https://github.com/mwien/CliquePicking/raw/master/example.png" title="Example"></a>
+  <a><img width="45%" src="https://github.com/mwien/CliquePicking/raw/master/example.png" title="Example"></a>
 </p>
 
 
