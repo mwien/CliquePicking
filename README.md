@@ -1,5 +1,5 @@
 # The Clique-Picking Algorithm
-This repository contains an implementation of the Clique-Picking algorithm that we have proposed at AAAI 2021 [1] for counting the number of Markov Equivalent DAGs in polynomial time. Moreover, we give an implementation of the polynomial-time algorithm for uniformly sampling a DAG from a Markov Equivalence Class. The paper and its appendix is available on arXiv [2].
+This repository contains an implementation of the Clique-Picking algorithm that we have proposed at AAAI 2021 [1] for counting the number of Markov equivalent DAGs in polynomial time. Moreover, we give an implementation of the polynomial-time algorithm for uniformly sampling a DAG from a Markov Equivalence Class. The paper and its appendix is available on arXiv [2].
 
 1. Marcel Wienöbst, Max Bannach, and Maciej Liśkiewicz: *Polynomial-Time Algorithms for Counting and Sampling Markov Equivalent DAGs* (AAAI 2021)
 2. [arXiv version](https://arxiv.org/abs/2012.09679)
