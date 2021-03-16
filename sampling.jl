@@ -162,7 +162,7 @@ end
 """
     sampleAMO!(time, tick, pos, idG, memo)
 
-Sample a uniform AMO from graph identified with idG recursively. The AMO is represented through the visit order of the vertices stored in time. tick is a counter for the visit times, pos is used as storage when drawing clique permutations, and memo contains all necessary precomputation information.
+Sample a uniform AMO from graph identified with idG recursively. The AMO is represented through the visit order of the vertices stored in time. comp is used for labeling the vertices with the id of the UCCG compid, tick is a counter for the visit times, pos is used as storage when drawing clique permutations, and memo contains all necessary precomputation information.
 
 """
 function sampleAMO!(comp, time, tick, pos, idG, memo, compid)
@@ -242,10 +242,6 @@ function sampleDAG(G, pre)
     D = copy(G)
     D.ne = 0
     for i = 1:n
-        if time[i] == 0
-            D.ne += length(D.fadjlist[i])
-            continue
-        end
         filter!(j->comp[i] != comp[j] || time[j] > time[i], D.fadjlist[i])
         filter!(j->comp[i] != comp[j] || time[j] < time[i], D.badjlist[i])
         D.ne += length(D.fadjlist[i])
