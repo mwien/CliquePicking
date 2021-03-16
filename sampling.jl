@@ -98,7 +98,7 @@ function precomputation(G)
             # is there anything more clever than just returning? maybe throw an error?
             return
         end
-        push!(startids, length(memoID)+1)
+        length(component) > 1 && push!(startids, length(memoID)+1)
         countwithprecomputation(cc, memoID, memo, fmemo)
     end
     return memo, startids
@@ -236,7 +236,7 @@ function sampleDAG(G, pre)
             D.ne += length(D.fadjlist[i])
             continue
         end
-        filter!(j->time[j] > time[i], D.fadjlist[i])
+        filter!(j->time[j] == 0 || time[j] > time[i], D.fadjlist[i])
         filter!(j->time[j] == 0 || time[j] < time[i], D.badjlist[i])
         D.ne += length(D.fadjlist[i])
     end
