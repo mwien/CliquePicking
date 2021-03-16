@@ -98,7 +98,7 @@ function precomputation(G)
             # is there anything more clever than just returning? maybe throw an error?
             return
         end
-        length(component) > 1 && push!(startids, length(memoID)+1)
+        push!(startids, length(memoID)+1)
         countwithprecomputation(cc, memoID, memo, fmemo)
     end
     return memo, startids
@@ -159,7 +159,7 @@ end
 Sample a uniform AMO from graph identified with idG recursively. The AMO is represented through the visit order of the vertices stored in time. tick is a counter for the visit times, pos is used as storage when drawing clique permutations, and memo contains all necessary precomputation information.
 
 """
-function sampleAMO!(time, tick, pos, idG, memo)
+function sampleAMO!(comp, time, tick, pos, idG, memo, compid)
     # draw a clique K
     cliqueidx = drawalias(memo[idG].alias)
     K = memo[idG].clique[cliqueidx]
@@ -169,13 +169,14 @@ function sampleAMO!(time, tick, pos, idG, memo)
     perm = drawpermutation(K, pos)
 
     for i in perm
+        comp[i] = compid
         time[i] = tick
         tick = tick + 1
     end
     
     # recurse into subproblems
     for idH in memo[idG].SP[cliqueidx]
-        tick = sampleAMO!(time, tick, pos, idH, memo)
+        tick = sampleAMO!(comp, time, tick, pos, idH, memo, compid)
     end
     
     return tick
@@ -220,13 +221,16 @@ function sampleDAG(G, pre)
     memo = pre[1]
     startids = pre[2]
 
+    comp = zeros(Int, n)
+    compid = 1
     time = zeros(Int, n)
     tick = 1
 
     pos = zeros(Int, n)
-
+    
     for idG in startids
-        tick = sampleAMO!(time, tick, pos, idG, memo)
+        tick = sampleAMO!(comp, time, tick, pos, idG, memo, compid)
+        compid += 1
     end
 
     D = copy(G)
@@ -236,8 +240,8 @@ function sampleDAG(G, pre)
             D.ne += length(D.fadjlist[i])
             continue
         end
-        filter!(j->time[j] == 0 || time[j] > time[i], D.fadjlist[i])
-        filter!(j->time[j] == 0 || time[j] < time[i], D.badjlist[i])
+        filter!(j->comp[i] != comp[j] || time[j] > time[i], D.fadjlist[i])
+        filter!(j->comp[i] != comp[j] || time[j] < time[i], D.badjlist[i])
         D.ne += length(D.fadjlist[i])
     end
 
