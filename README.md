@@ -49,7 +49,7 @@ The input graph above is discussed in Example 3 and 5 in [1,2] and given in the 
     julia> MECsize(G)
     54
     ```
-    The number of Markov equivalence classes is 54.
+    The class contains 54 Markov equivalent DAGs.
 
 ## Uniformly sample a DAG
 
