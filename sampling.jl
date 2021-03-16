@@ -88,8 +88,14 @@ function precomputation(G)
     memo = Vector{Memo}()
     startids = Vector{Int}()
     fmemo = zeros(BigInt, nv(G))
-    
-    U = SimpleGraphFromIterator(edges(intersect(G, reverse(G))))
+
+    U = copy(G)
+    U.ne = 0
+    for i = 1:nv(G)
+        filter!(j->has_edge(G, j, i), U.fadjlist[i])
+        filter!(j->has_edge(G, i, j), U.badjlist[i])
+        U.ne += length(U.fadjlist[i])
+    end
     for component in connected_components(U)
         cc = induced_subgraph(G, component)
         if !ischordal(cc[1])

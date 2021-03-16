@@ -271,8 +271,13 @@ function MECsize(G)
     n = nv(G)
     memo = Dict{Set, BigInt}() #mapping set of vertices -> AMO sum
     fmemo = zeros(BigInt, n)
-    U = SimpleGraphFromIterator(edges(intersect(G, reverse(G))))
-
+    U = copy(G)
+    U.ne = 0
+    for i = 1:n
+        filter!(j->has_edge(G, j, i), U.fadjlist[i])
+        filter!(j->has_edge(G, i, j), U.badjlist[i])
+        U.ne += length(U.fadjlist[i])
+    end
     tres = 1
     for component in connected_components(U)
         cc = induced_subgraph(U, component)
