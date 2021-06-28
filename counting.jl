@@ -137,7 +137,7 @@ function mcs(G, K)
         if !visited[v]
             vertexset = Vector{Int}()
             for x in sets[maxcard]
-                visited[x] && continue
+                visited[x] && break
                 visited[x] = true
                 push!(vertexset, x)
             end
