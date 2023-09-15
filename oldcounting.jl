@@ -1,4 +1,4 @@
-using Graphs
+using LightGraphs
 using LinkedLists
 
 include("utils.jl")
@@ -43,7 +43,7 @@ function cliquetreefrommcs(G, mcsorder, invmcsorder)
     K = Vector{Set}()
     push!(K, Set())
     s = 1
-    edgelist = Set{Graphs.SimpleGraphs.SimpleEdge}()
+    edgelist = Set{LightGraphs.SimpleGraphs.SimpleEdge}()
     visited = falses(n)
     clique = zeros(Int, n)
 
@@ -60,10 +60,9 @@ function cliquetreefrommcs(G, mcsorder, invmcsorder)
         if K[s] != S
             s += 1
             push!(K, S)
-            # TODO: findmax is rather slow I noticed
             k, _ = findmax(map(x -> invmcsorder[x], collect(S)))
             p = clique[mcsorder[k]]
-            push!(edgelist, Graphs.SimpleGraphs.SimpleEdge(p, s))
+            push!(edgelist, LightGraphs.SimpleGraphs.SimpleEdge(p, s))
         end
         
         union!(K[s], x)
@@ -78,6 +77,18 @@ function cliquetreefrommcs(G, mcsorder, invmcsorder)
 end
 
 """
+    vispush!(l::LinkedList, pointers, x, vis)
+
+"""
+@inline function vispush!(l::LinkedList, pointers, x, vis)
+    if vis
+        pointers[x] = push!(l,x)
+    else
+        pointers[x] = pushfirst!(l,x)
+    end
+end
+
+"""
     mcs(G, K)
 
 Performs a Maximum Cardinality Search on graph G. The elements of K are of prioritised and chosen first. Returns the visit order of the vertices, its inverse and the subgraphs C_G(K) (see Def. 1 in [1,2]). If K is empty a normal MCS is performed.
@@ -85,30 +96,54 @@ Performs a Maximum Cardinality Search on graph G. The elements of K are of prior
 The MCS takes the role of the LBFS in [1,2]. Details will be published in future work.
 
 """
-function mcs(G)
+function mcs(G, K)
     n = nv(G)
+    copy_K = copy(K)
     
     # data structures for MCS
-    sets = [LinkedList{Int}() for _ = 1:n+1]
+    sets = [LinkedList{Int}() for i = 1:n+1]
     pointers = Vector(undef,n)
-    size = ones(Int64, n)
+    size = Vector{Int}(undef, n)
+    visited = falses(n)
     
     # output data structures
     mcsorder = Vector{Int}(undef, n)
     invmcsorder = Vector{Int}(undef, n)
+    subgraphs = Array[]
 
     # init
+    visited[collect(copy_K)] .= true
     for v in vertices(G)
-        pointers[v] = push!(sets[1], v)
+        size[v] = 1
+        vispush!(sets[1], pointers, v, visited[v])
     end
     maxcard = 1
 
     for i = 1:n
-        v = first(sets[maxcard])
+        # first, the vertices in K are chosen
+        # they are always in the set of maximum cardinality vertices
+        if !isempty(copy_K)
+            v = pop!(copy_K)
+        # afterwards, the algorithm chooses any vertex from maxcard
+        else
+            v = first(sets[maxcard])
+        end
         # v is the ith vertex in the mcsorder
         mcsorder[i] = v
         invmcsorder[v] = i
         size[v] = -1
+
+        # immediately append possible subproblems to the output
+        if !visited[v]
+            vertexset = Vector{Int}()
+            for x in sets[maxcard]
+                visited[x] && break
+                visited[x] = true
+                push!(vertexset, x)
+            end
+            sg = induced_subgraph(G, vertexset)
+            subgraphs = vcat(subgraphs, (map(x -> sg[2][x], connected_components(sg[1]))))
+        end
 
         deleteat!(sets[maxcard], pointers[v])
 
@@ -117,7 +152,7 @@ function mcs(G)
             if size[w] >= 1
                 deleteat!(sets[size[w]], pointers[w])
                 size[w] += 1
-                pointers[w] = push!(sets[size[w]], w)
+                vispush!(sets[size[w]], pointers, w, visited[w])
             end
         end
         maxcard += 1
@@ -126,7 +161,7 @@ function mcs(G)
         end
     end
 
-    return mcsorder, invmcsorder
+    return mcsorder, invmcsorder, subgraphs
 end
 
 """
@@ -136,9 +171,20 @@ Computes a clique tree of a graph G. A vector K of maximal cliques and a tree T 
 
 """
 function cliquetree(G)
-    mcsorder, invmcsorder = mcs(G)
+    mcsorder, invmcsorder, _ = mcs(G, Set())
     K, T = cliquetreefrommcs(G, mcsorder, invmcsorder)
     return K, T
+end
+
+"""
+    subproblems(G, K)
+
+Computes C_G(K) (see Def. 1).
+
+"""
+function subproblems(G, K)
+    _, _, subgraphs = mcs(G, K)
+    return subgraphs
 end
 
 """
