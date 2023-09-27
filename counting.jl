@@ -3,6 +3,11 @@ using LinkedLists
 
 include("utils.jl")
 
+# TODO: inline?
+function isclique(G)
+    return binomial(nv(G), 2) == ne(G)
+end
+
 """
     fac(n, fmemo)
 
@@ -14,6 +19,15 @@ function fac(n, fmemo)
     n == 1 && return BigInt(1)
     res = fac(n-1, fmemo) * n
     return fmemo[n] = res
+end
+
+function rho(X, rmemo, fmemo)
+    haskey(rmemo, X) && return rmemo[X]
+    res = fac(first(X), fmemo)
+    for j = 2:length(X) # TODO: use eachindex?
+        res -= fac(first(X) - X[j], fmemo) * rho(view(X, j:length(X)), rmemo, fmemo)
+    end
+    return res
 end
 
 """
@@ -141,71 +155,185 @@ function cliquetree(G)
     return K, T
 end
 
-"""
-    count(cc, memo, fmemo)
-
-Main counting function. Implements the recursion given in Prop. 3 of [1,2]. The graph is given as the pair cc, describing the graph itself as well as the mapping of the vertives to its original vertex numbers.
-memo as well as fmemo are necessary for memoization, memo stores previously handled subgraphs, fmemo is used for the precomputation of factorials.
-"""
-function count(cc, memo, fmemo)
-    G = cc[1] # graph
-    mapping = cc[2] # mapping to original vertex numbers
-    n = nv(G)
-    
-    # check memoization table
-    mapG = Set(map(x -> mapping[x], vertices(G)))
-    haskey(memo, mapG) && return memo[mapG]
-    
-    # do bfs over the clique tree
-    K, T = cliquetree(G)
-    sum = BigInt(0)
-    Q = [1]
-    vis = falses(nv(T))
-    vis[1] = true
-    pred = -1 * ones(Int, nv(T))
-    while !isempty(Q)
-        v = pop!(Q)
-        for x in inneighbors(T, v)
-            if !vis[x]
-                push!(Q, x)
-                vis[x] = true
-                pred[x] = v
+function find_flower(K, T, s, t)
+    S = intersect(K[s], K[t])
+    F = Set{Int64}()
+    push!(F, s)
+    push!(F, t)
+    q = [t]
+    while !isempty(q)
+        u = pop!(q)
+        for v in neighbors(T, u)
+            if !(v in F) && issubset(S, K[v])
+                push!(F, v)
+                push!(q, v)
             end
         end
-
-        # product of #AMOs for the subproblems
-        prod = BigInt(1)
-        for H in subproblems(G, K[v])
-            HH = induced_subgraph(G, H)
-            prod *= count((HH[1], map(x -> mapping[x], HH[2])), memo, fmemo)
-        end
-
-        # compute correction term phi
-        FP = []
-        curr = v
-        curr_succ = -1
-        intersect_pred = -1
-        while pred[curr] != -1
-            curr = pred[curr]
-            intersect_v = length(intersect(K[v], K[curr]))
-            if curr_succ != -1
-                intersect_pred = length(intersect(K[curr], K[curr_succ]))
-            end
-            curr_succ = curr
-            if intersect_v == 0
-                break
-            end
-            #if lastcut were strictly greater, v is not in bouquet
-            # defined by cut between curr and curr_succ
-            if intersect_v >= intersect_pred && (isempty(FP) || intersect_v < FP[end])
-                push!(FP, intersect_v)
-            end
-        end
-        push!(FP, 0)
-        pmemo = zeros(BigInt, length(FP))
-        sum += prod * phi(length(K[v]), 1, reverse(FP), fmemo, pmemo)
     end
-    return memo[mapG] = sum
+    delete!(F, s)
+    return F
+end
+
+# TODO: very bad name
+function find_rho(K, T, Et)
+    X = [Vector{Tuple{Int64, Int64}}() for _ = 1:nv(T)]
+    q = [1]
+    vis = falses(nv(T))
+    pred = -1 * ones(Int64, nv(T))
+    while !isempty(q)
+        u = pop!(q)
+        for v in neighbors(T, u)
+            if !vis[v]
+                push!(q, v)
+                vis[v] = true
+                pred[v] = u
+            end
+        end
+
+        idx = u
+        while pred[idx] != -1 
+            S = intersect(K[idx], K[pred[idx]])
+            if (isempty(X[u]) || last(X)[2] > length(S)) && issubset(S, K[u])
+                push!(X[u], (Et[Edge(idx, pred[idx])], length(S)))
+            end
+        end
+    end
+    return X
+end
+
+function count(K, T, E, Et, F, X, S, P, memo)
+    # doesn't uniquely ID subproblem!
+    # let's not worry about this now
+    memo[P] != 0 && return memo[P]
+    sum = 0
+    for i in F[P] 
+        # compute phi
+        Xi = [length(K[i])]
+        for (e, l) in X[i]
+            ed = Et[e]
+            s = src(ed)
+            t = dst(ed)
+            if !(s in F[P]) && !(t in F[P])
+                break # is this correct?
+            end
+            push!(Xi, l - S[P])
+        end
+        phi = rho(Xi, memo[2], memo[3]) 
+
+        # compute subproblems
+        prod = 1
+        q = [i]
+        visited = falses(nv(T)) # TODO: could also reuse this to save further memory
+        # TODO: yeah its bad cause we don't want to always have effort O(n)! -> falses(length(F[P]))
+        output = falses(nv(T))
+        pred = -1 * ones(Int64, nv(T))
+        visited[i] = true # TODO: forgot this at other places
+        output[i] = true
+        while !isempty(q)
+            u = pop!(q)
+            for v in neighbors(T, u)
+                !(v in F[P]) && continue
+                if !visited[v]
+                    push!(q, v)
+                    visited[v] = true
+                    pred[v] = u
+                end
+                if !output[v]
+                    # recursive call for subproblem (u, v) edge
+                    # then mark output all in FP[(u,v)]
+                end
+            end
+        end
+
+        # combine
+        sum += phi * prod
+    end
+    return memo[P] = sum
+end
+
+function countamos(G, memo)
+    isclique(G) && return fac(nv(G), memo[3])
+    K, T = cliquetree(G)
+    E = Vector{Edge}()
+    for e in edges(T)
+        push!(E, e)
+        push!(E, reverse(e))
+    end
+    # Edge or just tuple maybe
+    Et = Dict{Edge, Int64}()
+    for i in eachindex(E)
+        Et[E[i]] = i
+    end
+    F = Vector{Set{Int64}}()
+    for i in eachindex(E)
+        F[i] = find_flower(K, T, src(E[i]), dst(E[i]))
+    end
+    push!(F, Set{Int64}(vertices(T)))
+    X = find_rho(K, T, Et)
+    S = Vector{Int64}()
+    # is also computed in find_rho btw
+    for i in eachindex(E)
+        i % 2 == 0 && continue
+        nw = length(intersect(K[src(E[i])], K[dst(E[i])]))
+        push!(S, nw)
+        push!(S, nw)
+    end
+    return count(K, T, E, Et, F, X, S, length(F), memo)
+
+#    # check memoization table
+#    mapG = Set(map(x -> mapping[x], vertices(G)))
+#    haskey(memo, mapG) && return memo[mapG]
+#    
+#    # do bfs over the clique tree
+#    K, T = cliquetree(G)
+#    sum = BigInt(0)
+#    Q = [1]
+#    vis = falses(nv(T))
+#    vis[1] = true
+#    pred = -1 * ones(Int, nv(T))
+#    while !isempty(Q)
+#        v = pop!(Q)
+#        for x in inneighbors(T, v)
+#            if !vis[x]
+#                push!(Q, x)
+#                vis[x] = true
+#                pred[x] = v
+#            end
+#        end
+#
+#        # product of #AMOs for the subproblems
+#        prod = BigInt(1)
+#        for H in subproblems(G, K[v])
+#            HH = induced_subgraph(G, H)
+#            prod *= count((HH[1], map(x -> mapping[x], HH[2])), memo, fmemo)
+#        end
+#
+#        # compute correction term phi
+#        FP = []
+#        curr = v
+#        curr_succ = -1
+#        intersect_pred = -1
+#        while pred[curr] != -1
+#            curr = pred[curr]
+#            intersect_v = length(intersect(K[v], K[curr]))
+#            if curr_succ != -1
+#                intersect_pred = length(intersect(K[curr], K[curr_succ]))
+#            end
+#            curr_succ = curr
+#            if intersect_v == 0
+#                break
+#            end
+#            #if lastcut were strictly greater, v is not in bouquet
+#            # defined by cut between curr and curr_succ
+#            if intersect_v >= intersect_pred && (isempty(FP) || intersect_v < FP[end])
+#                push!(FP, intersect_v)
+#            end
+#        end
+#        push!(FP, 0)
+#        pmemo = zeros(BigInt, length(FP))
+#        sum += prod * phi(length(K[v]), 1, reverse(FP), fmemo, pmemo)
+#    end
+#    return memo[mapG] = sum
 end
 
 """
@@ -221,10 +349,9 @@ julia> MECsize(G)
 54
 ```
 """
-function MECsize(G)
+function MECsize(G, withchecks = true)
     n = nv(G)
-    memo = Dict{Set, BigInt}() #mapping set of vertices -> AMO sum
-    fmemo = zeros(BigInt, n)
+    memo = (zeros(BigInt, 2*n), Dict{Vector, BigInt}(), zeros(BigInt, n)) # could also do memo struct
     U = copy(G)
     U.ne = 0
     for i = 1:n
@@ -234,14 +361,14 @@ function MECsize(G)
     end
     tres = 1
     for component in connected_components(U)
-        cc = induced_subgraph(U, component)
-        if !ischordal(cc[1])
+        H, _ = induced_subgraph(U, component) # TODO: how slow is induced_subgraph?
+        if withchecks && !ischordal(H)
             println("Undirected connected components are NOT chordal...Abort")
             println("Are you sure the graph is a CPDAG?")
             # is there anything more clever than just returning?
             return
         end
-        tres *= count(cc, memo, fmemo)
+        tres *= count(H, memo)
     end
 
     return tres
