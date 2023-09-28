@@ -3,6 +3,12 @@ using LinkedLists
 
 include("utils.jl")
 
+struct Memo
+    amos::Vector{BigInt}
+    rho::Dict{Vector, BigInt}
+    fac::Vector{BigInt}
+end
+
 # TODO: inline?
 function isclique(G)
     return binomial(nv(G), 2) == ne(G)
@@ -21,28 +27,13 @@ function fac(n, fmemo)
     return fmemo[n] = res
 end
 
-function rho(X, rmemo, fmemo)
-    haskey(rmemo, X) && return rmemo[X]
-    res = fac(first(X), fmemo)
+function rho(X, memo)
+    haskey(memo.rho, X) && return memo.rho[X]
+    res = fac(first(X), memo.fac)
     for j = 2:length(X) # TODO: use eachindex?
-        res -= fac(first(X) - X[j], fmemo) * rho(view(X, j:length(X)), rmemo, fmemo)
+        res -= fac(first(X) - X[j], memo.fac) * rho(view(X, j:length(X)), memo)
     end
-    return res
-end
-
-"""
-    phi(cliquesize, i, fp, fmemo, pmemo)
-
-Recursively compute the function phi. Initial call is phi(cliquesize, 1, fp, fmemo, pmemo). If not used before, fmemo and pmemo should be zero vectors of appropriate size. 
-
-"""
-function phi(cliquesize, i, fp, fmemo, pmemo)
-    pmemo[i] != 0 && return pmemo[i]
-    sum = fac(cliquesize-fp[i], fmemo)
-    for j = (i+1):length(fp)
-        sum -= fac(fp[j]-fp[i], fmemo) * phi(cliquesize, j, fp, fmemo, pmemo)
-    end
-    return pmemo[i] = sum
+    return memo.rho[X] = res
 end
 
 """
@@ -155,7 +146,58 @@ function cliquetree(G)
     return K, T
 end
 
-function find_flower(K, T, s, t)
+
+function count(K, T, E, Et, F, X, S, P, memo)
+    # doesn't uniquely ID subproblem!
+    # let's not worry about this now
+    # can fix it later
+    memo[P] != 0 && return memo[P]
+    sum = 0
+    # for clique in subproblem
+    for i in F[P] 
+        # compute phi
+        Xi = [length(K[i])]
+        for (e, l) in X[i]
+            ed = Et[e]
+            s, t = src(ed), dst(ed)
+            if !(s in F[P]) && !(t in F[P])
+                break # is this correct?
+            end
+            push!(Xi, l - S[P]) # is this correct?
+        end
+        phi = rho(Xi, memo) 
+
+        # compute subproblems
+        prod = 1
+        q = [i]
+        # TODO: reuse vectors here -> can keep them in
+        # data structure struct
+        vis = Set{Int64}()
+        out = Set{Int64}()
+        push!(vis, i)
+        push!(out, i)
+        while !isempty(q)
+            u = pop!(q)
+            for v in neighbors(T, u)
+                !(v in F[P]) && continue
+                if !(v in vis[v])
+                    push!(q, v)
+                    push!(vis, v)
+                end
+                if !(v in out)
+                    prod *= count(K, T, E, Et, F, X, S, Et[Edge(u, v)], memo)
+                    append!(out, F[Et[Edge(u, v)]])
+                end
+            end
+        end
+        # combine
+        sum += phi * prod
+    end
+    return memo[P] = sum
+end
+
+function find_flower(K, T, e)
+    s, t = src(e), dst(e)
     S = intersect(K[s], K[t])
     F = Set{Int64}()
     push!(F, s)
@@ -165,6 +207,10 @@ function find_flower(K, T, s, t)
         u = pop!(q)
         for v in neighbors(T, u)
             if !(v in F) && issubset(S, K[v])
+                if intersect(K[u], K[v]) == S 
+                    # TODO: -> this edge points to same flower!
+                    continue
+                end
                 push!(F, v)
                 push!(q, v)
             end
@@ -174,12 +220,14 @@ function find_flower(K, T, s, t)
     return F
 end
 
-# TODO: very bad name
-function find_rho(K, T, Et)
+function find_X(K, T, Et)
+    # X contains a vector of edge, sz tuples for each clique
+    # indicates separators in phi and their sizes
     X = [Vector{Tuple{Int64, Int64}}() for _ = 1:nv(T)]
-    q = [1]
     vis = falses(nv(T))
     pred = -1 * ones(Int64, nv(T))
+    q = [1]
+    vis[1] = true
     while !isempty(q)
         u = pop!(q)
         for v in neighbors(T, u)
@@ -189,7 +237,6 @@ function find_rho(K, T, Et)
                 pred[v] = u
             end
         end
-
         idx = u
         while pred[idx] != -1 
             S = intersect(K[idx], K[pred[idx]])
@@ -201,77 +248,29 @@ function find_rho(K, T, Et)
     return X
 end
 
-function count(K, T, E, Et, F, X, S, P, memo)
-    # doesn't uniquely ID subproblem!
-    # let's not worry about this now
-    memo[P] != 0 && return memo[P]
-    sum = 0
-    for i in F[P] 
-        # compute phi
-        Xi = [length(K[i])]
-        for (e, l) in X[i]
-            ed = Et[e]
-            s = src(ed)
-            t = dst(ed)
-            if !(s in F[P]) && !(t in F[P])
-                break # is this correct?
-            end
-            push!(Xi, l - S[P])
-        end
-        phi = rho(Xi, memo[2], memo[3]) 
-
-        # compute subproblems
-        prod = 1
-        q = [i]
-        visited = falses(nv(T)) # TODO: could also reuse this to save further memory
-        # TODO: yeah its bad cause we don't want to always have effort O(n)! -> falses(length(F[P]))
-        output = falses(nv(T))
-        pred = -1 * ones(Int64, nv(T))
-        visited[i] = true # TODO: forgot this at other places
-        output[i] = true
-        while !isempty(q)
-            u = pop!(q)
-            for v in neighbors(T, u)
-                !(v in F[P]) && continue
-                if !visited[v]
-                    push!(q, v)
-                    visited[v] = true
-                    pred[v] = u
-                end
-                if !output[v]
-                    # recursive call for subproblem (u, v) edge
-                    # then mark output all in FP[(u,v)]
-                end
-            end
-        end
-
-        # combine
-        sum += phi * prod
-    end
-    return memo[P] = sum
-end
-
 function countamos(G, memo)
-    isclique(G) && return fac(nv(G), memo[3])
+    isclique(G) && return fac(nv(G), memo.fac)
     K, T = cliquetree(G)
+    # println(T)
+    # maybe do this preprocessing in function
     E = Vector{Edge}()
     for e in edges(T)
         push!(E, e)
         push!(E, reverse(e))
     end
-    # Edge or just tuple maybe
     Et = Dict{Edge, Int64}()
     for i in eachindex(E)
         Et[E[i]] = i
     end
     F = Vector{Set{Int64}}()
     for i in eachindex(E)
-        F[i] = find_flower(K, T, src(E[i]), dst(E[i]))
+        push!(F, find_flower(K, T, E[i]))
     end
+    # this is initial graph, which corresponds to no edge in clique tree
     push!(F, Set{Int64}(vertices(T)))
-    X = find_rho(K, T, Et)
+    X = find_X(K, T, Et)
     S = Vector{Int64}()
-    # is also computed in find_rho btw
+    # is also computed in find_X btw
     for i in eachindex(E)
         i % 2 == 0 && continue
         nw = length(intersect(K[src(E[i])], K[dst(E[i])]))
@@ -279,61 +278,6 @@ function countamos(G, memo)
         push!(S, nw)
     end
     return count(K, T, E, Et, F, X, S, length(F), memo)
-
-#    # check memoization table
-#    mapG = Set(map(x -> mapping[x], vertices(G)))
-#    haskey(memo, mapG) && return memo[mapG]
-#    
-#    # do bfs over the clique tree
-#    K, T = cliquetree(G)
-#    sum = BigInt(0)
-#    Q = [1]
-#    vis = falses(nv(T))
-#    vis[1] = true
-#    pred = -1 * ones(Int, nv(T))
-#    while !isempty(Q)
-#        v = pop!(Q)
-#        for x in inneighbors(T, v)
-#            if !vis[x]
-#                push!(Q, x)
-#                vis[x] = true
-#                pred[x] = v
-#            end
-#        end
-#
-#        # product of #AMOs for the subproblems
-#        prod = BigInt(1)
-#        for H in subproblems(G, K[v])
-#            HH = induced_subgraph(G, H)
-#            prod *= count((HH[1], map(x -> mapping[x], HH[2])), memo, fmemo)
-#        end
-#
-#        # compute correction term phi
-#        FP = []
-#        curr = v
-#        curr_succ = -1
-#        intersect_pred = -1
-#        while pred[curr] != -1
-#            curr = pred[curr]
-#            intersect_v = length(intersect(K[v], K[curr]))
-#            if curr_succ != -1
-#                intersect_pred = length(intersect(K[curr], K[curr_succ]))
-#            end
-#            curr_succ = curr
-#            if intersect_v == 0
-#                break
-#            end
-#            #if lastcut were strictly greater, v is not in bouquet
-#            # defined by cut between curr and curr_succ
-#            if intersect_v >= intersect_pred && (isempty(FP) || intersect_v < FP[end])
-#                push!(FP, intersect_v)
-#            end
-#        end
-#        push!(FP, 0)
-#        pmemo = zeros(BigInt, length(FP))
-#        sum += prod * phi(length(K[v]), 1, reverse(FP), fmemo, pmemo)
-#    end
-#    return memo[mapG] = sum
 end
 
 """
@@ -351,7 +295,7 @@ julia> MECsize(G)
 """
 function MECsize(G, withchecks = true)
     n = nv(G)
-    memo = (zeros(BigInt, 2*n), Dict{Vector, BigInt}(), zeros(BigInt, n)) # could also do memo struct
+    memo = Memo(zeros(BigInt, 2*n), Dict{Vector, BigInt}(), zeros(BigInt, n)) 
     U = copy(G)
     U.ne = 0
     for i = 1:n
@@ -368,101 +312,8 @@ function MECsize(G, withchecks = true)
             # is there anything more clever than just returning?
             return
         end
-        tres *= count(H, memo)
+        tres *= countamos(H, memo)
     end
 
     return tres
-end
-
-"""
-    countwithprecomputation(component, memoID, memo, fmemo)
-
-Main counting function with additional precomputations needed for fast sampling.
-memoID contains the ID for the given component and memo and fmemo allow memoization.
-"""
-function countwithprecomputation(component, memoID, memo, fmemo)
-    G = component[1] # graph
-    mapping = component[2] # mapping to original vertex numbers
-    n = nv(G)
-
-    # check memoization table
-    mapG = Set(map(x -> mapping[x], vertices(G)))
-    haskey(memoID, mapG) && return memoID[mapG]
-    
-    # do bfs over the clique tree
-    idG = length(memo)+1 # id for mapG
-    K, T = cliquetree(G)
-    push!(memo, Memo(Vector(undef, length(K)), Vector(undef, length(K)), Vector(undef, length(K))))
-    amosperclique = Vector{BigInt}(undef, length(K))
-    sum = 0
-    Q = [1]
-    FP = []
-    vis = falses(nv(T))
-    vis[1] = true
-    pred = -1 * ones(Int, nv(T))
-    while !isempty(Q)
-        v = pop!(Q)
-        memo[idG].clique[v] = map(x -> mapping[x], collect(K[v]))
-        memo[idG].FP[v] = []
-        memo[idG].SP[v] = Vector{Int}()
-
-        for x in inneighbors(T, v)
-            if !vis[x]
-                push!(Q, x)
-                vis[x] = true
-                pred[x] = v
-            end
-        end
-
-        # product of #AMOs for the subproblems
-        prod = BigInt(1)
-        for H in subproblems(G, K[v]) 
-            HH = induced_subgraph(G, H)
-            res, id = countwithprecomputation((HH[1], map(x -> mapping[x], HH[2])), memoID, memo, fmemo)
-            prod *= res
-            push!(memo[idG].SP[v], id)
-        end
-        
-        # compute correction term phi
-        FP = []
-        FPsets = []
-        curr = v
-        curr_succ = -1
-        intersect_pred = -1
-        while pred[curr] != -1
-            curr = pred[curr]
-            intersect_v = length(intersect(K[v], K[curr]))
-            if curr_succ != -1
-                intersect_pred = length(intersect(K[curr], K[curr_succ]))
-            end
-            curr_succ = curr
-            if intersect_v == 0
-                break
-            end
-            # if lastcut were strictly greater, v is not in bouquet
-            # defined by cut between curr and curr_succ
-            if intersect_v >= intersect_pred && (isempty(FP) || intersect_v < FP[end])
-                push!(FP, intersect_v)
-                push!(FPsets, intersect(K[v], K[curr]))
-            end
-        end
-
-        tmp = Set()
-        for x in reverse(FPsets)
-            if isempty(memo[idG].FP[v])
-                push!(memo[idG].FP[v], map(y -> mapping[y], collect(x)))
-            else
-                push!(memo[idG].FP[v], map(y -> mapping[y], collect(setdiff(x, tmp))))
-            end
-            tmp = x
-        end
-        
-        push!(FP, 0)
-        pmemo = zeros(BigInt, length(FP))
-        sum += amosperclique[v] = prod * phi(length(K[v]), 1, reverse(FP), fmemo, pmemo)
-    end
-    # init alias
-    memo[idG].alias = alias_initialization(amosperclique, sum)
-    memoID[mapG] = (sum, idG) # assign ID
-    return memoID[mapG]
 end

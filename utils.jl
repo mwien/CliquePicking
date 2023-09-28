@@ -1,4 +1,4 @@
-using LightGraphs
+using Graphs
 
 """
     readgraph(file = stdin, undirected = false)
@@ -51,7 +51,7 @@ end
 Return true if the given graph is chordal
 """
 function ischordal(G)
-    mcsorder, invmcsorder, _ = mcs(G, Set())
+    mcsorder, invmcsorder = mcs(G)
     
     n = length(mcsorder)
     
