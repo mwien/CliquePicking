@@ -148,27 +148,39 @@ end
 
 
 function count(K, T, E, Et, F, X, S, P, memo)
+    if P > length(E)
+        #println("id: " * string(P))
+        #println("init")
+    else 
+        s, t = src(E[P]), dst(E[P])
+        #println("id: " * string(P))
+        #println(string(K[s]) * " " * string(K[t]))
+    end
     # doesn't uniquely ID subproblem!
     # let's not worry about this now
     # can fix it later
-    memo[P] != 0 && return memo[P]
-    sum = 0
+    memo.amos[P] != 0 && return memo.amos[P]
+    sum = BigInt(0)
     # for clique in subproblem
     for i in F[P] 
+        #println("hi" * string(i))
         # compute phi
-        Xi = [length(K[i])]
+        Xi = [length(K[i]) - S[P]]
         for (e, l) in X[i]
-            ed = Et[e]
+            ed = E[e]
             s, t = src(ed), dst(ed)
-            if !(s in F[P]) && !(t in F[P])
+            if !(s in F[P]) || !(t in F[P])
                 break # is this correct?
             end
-            push!(Xi, l - S[P]) # is this correct?
+            l - S[P] > 0 && push!(Xi, l - S[P]) # is this correct?
         end
+        #println(Xi)
         phi = rho(Xi, memo) 
+        #println(phi)
+        #println("??")
 
         # compute subproblems
-        prod = 1
+        prod = BigInt(1)
         q = [i]
         # TODO: reuse vectors here -> can keep them in
         # data structure struct
@@ -180,20 +192,23 @@ function count(K, T, E, Et, F, X, S, P, memo)
             u = pop!(q)
             for v in neighbors(T, u)
                 !(v in F[P]) && continue
-                if !(v in vis[v])
+                if !(v in vis)
                     push!(q, v)
                     push!(vis, v)
                 end
                 if !(v in out)
                     prod *= count(K, T, E, Et, F, X, S, Et[Edge(u, v)], memo)
-                    append!(out, F[Et[Edge(u, v)]])
+                    union!(out, F[Et[Edge(u, v)]])
                 end
             end
         end
         # combine
         sum += phi * prod
     end
-    return memo[P] = sum
+
+    #println("id: " * string(P))
+    #println(sum)
+    return memo.amos[P] = sum
 end
 
 function find_flower(K, T, e)
@@ -240,9 +255,10 @@ function find_X(K, T, Et)
         idx = u
         while pred[idx] != -1 
             S = intersect(K[idx], K[pred[idx]])
-            if (isempty(X[u]) || last(X)[2] > length(S)) && issubset(S, K[u])
+            if (isempty(X[u]) || last(X[u])[2] > length(S)) && issubset(S, K[u])
                 push!(X[u], (Et[Edge(idx, pred[idx])], length(S)))
             end
+            idx = pred[idx]
         end
     end
     return X
@@ -251,7 +267,8 @@ end
 function countamos(G, memo)
     isclique(G) && return fac(nv(G), memo.fac)
     K, T = cliquetree(G)
-    # println(T)
+    #println("K: " * string(K))
+    #println("T: " * string(T))
     # maybe do this preprocessing in function
     E = Vector{Edge}()
     for e in edges(T)
@@ -277,6 +294,7 @@ function countamos(G, memo)
         push!(S, nw)
         push!(S, nw)
     end
+    push!(S, 0)
     return count(K, T, E, Et, F, X, S, length(F), memo)
 end
 
