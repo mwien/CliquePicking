@@ -321,7 +321,6 @@ julia> MECsize(G)
 """
 function MECsize(G, withchecks = true)
     n = nv(G)
-    memo = Memo(zeros(BigInt, 2*n), Dict{Vector, BigInt}(), zeros(BigInt, n)) 
     U = copy(G)
     U.ne = 0
     for i = 1:n
@@ -331,6 +330,7 @@ function MECsize(G, withchecks = true)
     end
     tres = 1
     for component in connected_components(U)
+        memo = Memo(zeros(BigInt, 2*n), Dict{Vector, BigInt}(), zeros(BigInt, n)) 
         H, _ = induced_subgraph(U, component) # TODO: how slow is induced_subgraph?
         if withchecks && !ischordal(H)
             println("Undirected connected components are NOT chordal...Abort")
