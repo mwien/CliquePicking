@@ -129,11 +129,15 @@ function oldcount(cc, memo, fmemo)
     G = cc[1] # graph
     mapping = cc[2] # mapping to original vertex numbers
     n = nv(G)
+    ##println(string(map(x -> mapping[x], vertices(G))))
     
     # check memoization table
     mapG = Set(map(x -> mapping[x], vertices(G)))
-    haskey(memo, mapG) && return memo[mapG]
-    
+    if haskey(memo, mapG) 
+        #println("res: " * string(memo[mapG]))
+        return memo[mapG]
+    end
+
     # do bfs over the clique tree
     K, T = cliquetree(G)
     sum = BigInt(0)
@@ -153,6 +157,7 @@ function oldcount(cc, memo, fmemo)
 
         # product of #AMOs for the subproblems
         prod = BigInt(1)
+        #println("subproblems for " * string(map(x -> mapping[x], collect(K[v]))))
         for H in subproblems(G, K[v])
             HH = induced_subgraph(G, H)
             prod *= oldcount((HH[1], map(x -> mapping[x], HH[2])), memo, fmemo)
@@ -183,6 +188,8 @@ function oldcount(cc, memo, fmemo)
         pmemo = zeros(BigInt, length(FP))
         sum += prod * phi(length(K[v]), 1, reverse(FP), fmemo, pmemo)
     end
+    #println(string(map(x -> mapping[x], vertices(G))))
+    #println("res: " * string(sum))
     return memo[mapG] = sum
 end
 
@@ -201,15 +208,15 @@ function oldMECsize(G, count_fun = oldcount)
     for component in connected_components(U)
         cc = induced_subgraph(U, component)
         if !ischordal(cc[1])
-            println("Undirected connected components are NOT chordal...Abort")
-            println("Are you sure the graph is a CPDAG?")
+            #println("Undirected connected components are NOT chordal...Abort")
+            #println("Are you sure the graph is a CPDAG?")
             # is there anything more clever than just returning?
             return
         end
         tres *= count_fun(cc, memo, fmemo)
     end
 
-    #println(length(memo))
+    ##println(length(memo))
 
     return tres
 end

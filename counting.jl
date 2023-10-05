@@ -11,7 +11,7 @@ end
 
 # TODO: inline?
 function isclique(G)
-    return binomial(nv(G), 2) == ne(G)
+    return 2*binomial(nv(G), 2) == ne(G)
 end
 
 """
@@ -147,19 +147,18 @@ function cliquetree(G)
 end
 
 
-function count(K, T, E, Et, F, X, S, P, memo)
+function count(K, T, E, Et, F, X, S, R, P, memo)
     if P > length(E)
         #println("id: " * string(P))
         #println("init")
     else 
-        s, t = src(E[P]), dst(E[P])
+        s, t = src(E[R[P]]), dst(E[R[P]])
         #println("id: " * string(P))
         #println(string(K[s]) * " " * string(K[t]))
     end
-    # doesn't uniquely ID subproblem!
-    # let's not worry about this now
-    # can fix it later
+    P = R[P]
     memo.amos[P] != 0 && return memo.amos[P]
+    length(F[P]) == 1 && return memo.amos[P] = fac(length(K[first(F[P])]) - S[P], memo.fac)
     sum = BigInt(0)
     # for clique in subproblem
     for i in F[P] 
@@ -170,9 +169,9 @@ function count(K, T, E, Et, F, X, S, P, memo)
             ed = E[e]
             s, t = src(ed), dst(ed)
             if !(s in F[P]) || !(t in F[P])
-                break # is this correct?
+                break 
             end
-            l - S[P] > 0 && push!(Xi, l - S[P]) # is this correct?
+            l - S[P] > 0 && push!(Xi, l - S[P]) 
         end
         #println(Xi)
         phi = rho(Xi, memo) 
@@ -182,8 +181,6 @@ function count(K, T, E, Et, F, X, S, P, memo)
         # compute subproblems
         prod = BigInt(1)
         q = [i]
-        # TODO: reuse vectors here -> can keep them in
-        # data structure struct
         vis = Set{Int64}()
         out = Set{Int64}()
         push!(vis, i)
@@ -197,8 +194,8 @@ function count(K, T, E, Et, F, X, S, P, memo)
                     push!(vis, v)
                 end
                 if !(v in out)
-                    prod *= count(K, T, E, Et, F, X, S, Et[Edge(u, v)], memo)
-                    union!(out, F[Et[Edge(u, v)]])
+                    prod *= count(K, T, E, Et, F, X, S, R, Et[Edge(u, v)], memo)
+                    union!(out, F[R[Et[Edge(u, v)]]])
                 end
             end
         end
@@ -211,7 +208,7 @@ function count(K, T, E, Et, F, X, S, P, memo)
     return memo.amos[P] = sum
 end
 
-function find_flower(K, T, e)
+function find_flower(K, T, e, R, Et)
     s, t = src(e), dst(e)
     S = intersect(K[s], K[t])
     F = Set{Int64}()
@@ -224,6 +221,7 @@ function find_flower(K, T, e)
             if !(v in F) && issubset(S, K[v])
                 if intersect(K[u], K[v]) == S 
                     # TODO: -> this edge points to same flower!
+                    R[Et[Edge(v, u)]] = Et[e]
                     continue
                 end
                 push!(F, v)
@@ -266,6 +264,7 @@ end
 
 function countamos(G, memo)
     isclique(G) && return fac(nv(G), memo.fac)
+    #x = @elapsed begin
     K, T = cliquetree(G)
     #println("K: " * string(K))
     #println("T: " * string(T))
@@ -280,9 +279,16 @@ function countamos(G, memo)
         Et[E[i]] = i
     end
     F = Vector{Set{Int64}}()
+    R = -1 * ones(Int64, length(E))
     for i in eachindex(E)
-        push!(F, find_flower(K, T, E[i]))
+        if R[i] == -1 
+            R[i] = i
+            push!(F, find_flower(K, T, E[i], R, Et))
+        else 
+            push!(F, Set{Int64}())
+        end
     end
+    push!(R, length(R)+1)
     # this is initial graph, which corresponds to no edge in clique tree
     push!(F, Set{Int64}(vertices(T)))
     X = find_X(K, T, Et)
@@ -295,7 +301,9 @@ function countamos(G, memo)
         push!(S, nw)
     end
     push!(S, 0)
-    return count(K, T, E, Et, F, X, S, length(F), memo)
+    #end
+    #println(x)
+    return count(K, T, E, Et, F, X, S, R, length(F), memo)
 end
 
 """
