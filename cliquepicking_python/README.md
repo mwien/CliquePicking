@@ -1,6 +1,6 @@
 # cliquepicking
 
-You can install the cliquepicking module with ```pip install cliquepicking```. 
+You can install the cliquepicking module with ```pip install cliquepicking```. (Not working at the moment, will be fixed soon.)
 
 The module provides the functions
 
