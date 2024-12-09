@@ -1,3 +1,5 @@
+# cliquepicking
+
 You can install the cliquepicking module with ```pip install cliquepicking```. 
 
 The module provides the functions
