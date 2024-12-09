@@ -1,6 +1,1 @@
-## latex auxiliaries
-*.out
-*~
-*.aux
-*.pdf
-*.log
+target/

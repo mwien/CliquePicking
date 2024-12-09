@@ -1,0 +1,19 @@
+[build-system]
+requires = ["maturin>=1.6,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "cliquepicking"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+authors = [{name = "Marcel Wienöbst"}]
+description = "Counting and Sampling Markov Equivalent DAGs"
+keywords = ["causality", "causal discovery", "markov equivalence"]
+dynamic = ["version"]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]

@@ -1,0 +1,15 @@
+[package]
+name = "cliquepicking"
+version = "0.1.1"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "cliquepicking"
+crate-type = ["cdylib"]
+
+[dependencies]
+cliquepicking_rs = { path = "../cliquepicking_rs" }
+num-bigint = "0.4.6"
+pyo3 = { version = "0.21.1", features = ["num-bigint"] }
+rug = "1.24.1"
