@@ -12,4 +12,3 @@ crate-type = ["cdylib"]
 cliquepicking_rs = { path = "../cliquepicking_rs" }
 num-bigint = "0.4.6"
 pyo3 = { version = "0.21.1", features = ["num-bigint"] }
-rug = "1.24.1"

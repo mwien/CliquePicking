@@ -1,7 +1,8 @@
+use num_bigint::{BigUint, RandBigInt};
+use num_traits::One;
+use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
-use rand::{thread_rng, Rng};
-use rug::rand::RandState;
-use rug::Integer;
+use rand::Rng;
 use std::cmp;
 use std::collections::VecDeque;
 
@@ -17,9 +18,9 @@ use crate::partially_directed_graph::PartiallyDirectedGraph;
 #[derive(Debug, Clone)]
 pub struct AliasTable {
     n: usize,
-    prob: Vec<Integer>, // maybe call this weight
+    prob: Vec<BigUint>, // maybe call this weight
     alias: Vec<usize>,
-    total: Integer,
+    total: BigUint,
 }
 
 #[derive(Debug)]
@@ -31,11 +32,11 @@ pub struct SamplingInfo {
     forbidden_sets: Vec<Vec<(usize, usize, usize)>>,
 }
 
-fn alias_initialization(weights: &[Integer], total: Integer) -> AliasTable {
+fn alias_initialization(weights: &[BigUint], total: BigUint) -> AliasTable {
     let n = weights.len();
     let mut weights_cloned = weights.to_vec();
     let mut alias = vec![0; n];
-    let mut prob = vec![Integer::from(0); n];
+    let mut prob = vec![BigUint::ZERO; n];
 
     let mut small = Vec::new();
     let mut large = Vec::new();
@@ -78,9 +79,9 @@ fn alias_initialization(weights: &[Integer], total: Integer) -> AliasTable {
     }
 }
 
-fn draw_alias(alias_table: &AliasTable, rug_rand: &mut RandState) -> usize {
-    let i = rand::thread_rng().gen_range(0..alias_table.n);
-    let x = alias_table.total.clone().random_below(rug_rand);
+fn draw_alias(alias_table: &AliasTable, rng: &mut ThreadRng) -> usize {
+    let i = rng.gen_range(0..alias_table.n);
+    let x = rng.gen_biguint_below(&alias_table.total);
     if x < alias_table.prob[i] {
         i
     } else {
@@ -93,7 +94,7 @@ pub fn count_traversal(
     i: usize,
     visited: &mut LazyTokens,
     considered: &mut LazyTokens,
-    pre: &mut Vec<Integer>,
+    pre: &mut Vec<BigUint>,
     flower: &IndexSet,
     memoization: &mut Memoization,
     alias_tables: &mut Vec<AliasTable>,
@@ -101,16 +102,16 @@ pub fn count_traversal(
     separators: &Vec<IndexSet>,
     flowers: &Vec<IndexSet>,
     forbidden_sets: &Vec<Vec<(usize, usize, usize)>>,
-) -> Integer {
+) -> BigUint {
     visited.set(i);
-    let mut product = Integer::from(1);
+    let mut product = BigUint::one();
     for &j in clique_tree.tree.neighbors(i) {
         if !flower.contains(j) {
             continue;
         }
         let edge_id = clique_tree.get_edge_id(i, j);
         if !visited.check(j) && !considered.check(j) {
-            if pre[edge_id] != 0 {
+            if pre[edge_id] != BigUint::ZERO {
                 visited.set(j);
                 product *= pre[edge_id].clone();
             } else {
@@ -173,17 +174,17 @@ fn count_sampling_info(
     separators: &Vec<IndexSet>,
     flowers: &Vec<IndexSet>,
     forbidden_sets: &Vec<Vec<(usize, usize, usize)>>,
-) -> Integer {
-    if memoization.count[subproblem] != 0 {
+) -> BigUint {
+    if memoization.count[subproblem] != BigUint::ZERO {
         // already computed
         return memoization.count[subproblem].clone(); // clone?
     }
     let flower = &flowers[subproblem];
     let separator = &separators[subproblem];
-    let mut sum = Integer::from(0);
-    let mut amos_per_clique = vec![Integer::from(0); flower.len()];
+    let mut sum = BigUint::ZERO;
+    let mut amos_per_clique = vec![BigUint::ZERO; flower.len()];
     // -> quadratic cost are prob. not bottleneck i guess
-    let mut pre = vec![Integer::from(0); 2 * (clique_tree.tree.n - 1)];
+    let mut pre = vec![BigUint::ZERO; 2 * (clique_tree.tree.n - 1)];
     for (i, &clique_id) in flower.iter().enumerate() {
         let mut forbidden_sizes = Vec::new();
         forbidden_sizes.push(clique_tree.cliques[clique_id].len() - separator.len());
@@ -256,7 +257,7 @@ fn count_amos_sampling_info(g: &Graph) -> SamplingInfo {
             n: 0,
             prob: Vec::new(),
             alias: Vec::new(),
-            total: Integer::from(0)
+            total: BigUint::ZERO
         };
         flowers.len()
     ]; // could improve this
@@ -331,14 +332,12 @@ fn sample_ordering_from_info(
     visited: &mut LazyTokens,
     considered: &mut LazyTokens,
     sampling_info: &SamplingInfo,
-    rug_rand: &mut RandState,
+    rng: &mut ThreadRng,
 ) -> Vec<usize> {
     let mut ordering = Vec::new();
 
-    let clique_id = sampling_info.flowers[subproblem].get(draw_alias(
-        &sampling_info.alias_tables[subproblem],
-        rug_rand,
-    )); // maybe one-liner
+    let clique_id = sampling_info.flowers[subproblem]
+        .get(draw_alias(&sampling_info.alias_tables[subproblem], rng)); // maybe one-liner
     let clique = &sampling_info.clique_tree.cliques[clique_id];
     let flower = &sampling_info.flowers[subproblem];
     let separator = &sampling_info.separators[subproblem];
@@ -390,7 +389,7 @@ fn sample_ordering_from_info(
                     visited,
                     considered,
                     sampling_info,
-                    rug_rand,
+                    rng,
                 ));
                 for &new_clique_id in &sampling_info.flowers[new_flower_id] {
                     considered.set(new_clique_id);
@@ -407,9 +406,7 @@ fn sample_ordering_from_info(
 pub fn sample_amos(g: &Graph, k: usize) -> Vec<DirectedGraph> {
     let sampling_info = count_amos_sampling_info(g);
     let mut samples = Vec::new();
-    let mut rug_rand = RandState::new(); // for small graphs, seeding the RNG is the costliest operation
-    let seed = Integer::from(thread_rng().gen_range(0..usize::MAX));
-    rug_rand.seed(&seed);
+    let mut rng = rand::thread_rng();
     for _ in 0..k {
         let mut visited = LazyTokens::new(sampling_info.clique_tree.tree.n);
         let mut considered = LazyTokens::new(sampling_info.clique_tree.tree.n);
@@ -420,7 +417,7 @@ pub fn sample_amos(g: &Graph, k: usize) -> Vec<DirectedGraph> {
             &mut visited,
             &mut considered,
             &sampling_info,
-            &mut rug_rand,
+            &mut rng,
         );
         samples.push(g.orient(&ordering));
     }
@@ -467,9 +464,7 @@ pub fn sample_cpdag(g: &PartiallyDirectedGraph, k: usize) -> Vec<DirectedGraph> 
 fn sample_amo_orders(g: &Graph, k: usize) -> Vec<Vec<usize>> {
     let sampling_info = count_amos_sampling_info(g);
     let mut orders = Vec::new();
-    let mut rug_rand = RandState::new(); // for small graphs, seeding the RNG is the costliest operation
-    let seed = Integer::from(thread_rng().gen_range(0..usize::MAX));
-    rug_rand.seed(&seed);
+    let mut rng = rand::thread_rng(); // for small graphs, seeding the RNG is the costliest operation
     for _ in 0..k {
         let mut visited = LazyTokens::new(sampling_info.clique_tree.tree.n);
         let mut considered = LazyTokens::new(sampling_info.clique_tree.tree.n);
@@ -480,7 +475,7 @@ fn sample_amo_orders(g: &Graph, k: usize) -> Vec<Vec<usize>> {
             &mut visited,
             &mut considered,
             &sampling_info,
-            &mut rug_rand,
+            &mut rng,
         );
         orders.push(ordering);
     }

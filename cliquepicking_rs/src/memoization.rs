@@ -1,19 +1,19 @@
-use rug::Integer;
+use num_bigint::BigUint;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Memoization {
-    pub count: Vec<Integer>,
-    pub rho: HashMap<Vec<usize>, Integer>,
-    pub factorial: Vec<Integer>,
+    pub count: Vec<BigUint>,
+    pub rho: HashMap<Vec<usize>, BigUint>,
+    pub factorial: Vec<BigUint>,
 }
 
 impl Memoization {
     pub fn new(num_cliques: usize, n: usize) -> Memoization {
         Memoization {
-            count: vec![Integer::from(0); 2 * num_cliques - 1],
+            count: vec![BigUint::ZERO; 2 * num_cliques - 1],
             rho: HashMap::new(),
-            factorial: vec![Integer::from(0); n + 1],
+            factorial: vec![BigUint::ZERO; n + 1],
         }
     }
 }

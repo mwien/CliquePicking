@@ -6,7 +6,6 @@ use cliquepicking_rs::sample::sample_cpdag;
 use cliquepicking_rs::sample::sample_cpdag_orders;
 
 use num_bigint::BigUint;
-use rug::integer::Order;
 
 /// A Python module for counting and sampling Markov equivalent DAGs.
 #[pymodule]
@@ -23,8 +22,7 @@ fn mec_size(cpdag: Vec<(usize, usize)>) -> PyResult<BigUint> {
     let mx = max_element(&cpdag);
     let g = PartiallyDirectedGraph::from_edge_list(cpdag, mx + 1);
     let res = count_cpdag(&g);
-    let digits = res.to_digits::<u32>(Order::Lsf);
-    Ok(BigUint::new(digits))
+    Ok(res)
 }
 
 /// Sample k DAGs uniformly from the Markov equivalence class represented by CPDAG cpdag.

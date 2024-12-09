@@ -1,12 +1,13 @@
-use rug::Integer;
+use num_bigint::BigUint;
+use num_traits::One;
 
 use crate::memoization::Memoization;
 
-pub fn factorial(n: usize, memoization: &mut [Integer]) -> Integer {
-    if memoization[n] != 0 {
+pub fn factorial(n: usize, memoization: &mut [BigUint]) -> BigUint {
+    if memoization[n] != BigUint::ZERO {
         return memoization[n].clone();
     }
-    let mut result = Integer::from(1);
+    let mut result = BigUint::one();
     for i in 1..n + 1 {
         result *= i;
     }
@@ -15,7 +16,7 @@ pub fn factorial(n: usize, memoization: &mut [Integer]) -> Integer {
 }
 
 // TODO: maybe implement without recursion?
-pub fn rho(x: &[usize], memoization: &mut Memoization) -> Integer {
+pub fn rho(x: &[usize], memoization: &mut Memoization) -> BigUint {
     let x_vec = x.to_vec();
     if let Some(res) = memoization.rho.get(&x_vec) {
         return res.clone();

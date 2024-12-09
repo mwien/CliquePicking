@@ -1,4 +1,5 @@
-use rug::Integer;
+use num_bigint::BigUint;
+use num_traits::One;
 
 use crate::clique_tree::CliqueTree;
 use crate::combinatorics;
@@ -12,23 +13,23 @@ pub fn count_traversal(
     i: usize,
     visited: &mut LazyTokens,
     considered: &mut LazyTokens,
-    pre: &mut Vec<Integer>,
+    pre: &mut Vec<BigUint>,
     flower: &IndexSet,
     memoization: &mut Memoization,
     clique_tree: &CliqueTree,
     separators: &Vec<IndexSet>,
     flowers: &Vec<IndexSet>,
     forbidden_sets: &Vec<Vec<(usize, usize, usize)>>,
-) -> Integer {
+) -> BigUint {
     visited.set(i);
-    let mut product = Integer::from(1);
+    let mut product = BigUint::one();
     for &j in clique_tree.tree.neighbors(i) {
         if !flower.contains(j) {
             continue;
         }
         let edge_id = clique_tree.get_edge_id(i, j);
         if !visited.check(j) && !considered.check(j) {
-            if pre[edge_id] != 0 {
+            if pre[edge_id] != BigUint::ZERO {
                 visited.set(j);
                 product *= pre[edge_id].clone();
             } else {
@@ -87,8 +88,8 @@ fn count(
     separators: &Vec<IndexSet>,
     flowers: &Vec<IndexSet>,
     forbidden_sets: &Vec<Vec<(usize, usize, usize)>>,
-) -> Integer {
-    if memoization.count[subproblem] != 0 {
+) -> BigUint {
+    if memoization.count[subproblem] != BigUint::ZERO {
         // already computed
         return memoization.count[subproblem].clone(); // clone?
     }
@@ -104,8 +105,8 @@ fn count(
         return res;
     }
 
-    let mut sum = Integer::from(0);
-    let mut pre = vec![Integer::from(0); 2 * (clique_tree.tree.n - 1)];
+    let mut sum = BigUint::ZERO;
+    let mut pre = vec![BigUint::ZERO; 2 * (clique_tree.tree.n - 1)];
     for &clique_id in flower {
         let mut forbidden_sizes = Vec::new();
         forbidden_sizes.push(clique_tree.cliques[clique_id].len() - separator.len());
@@ -145,7 +146,7 @@ fn count(
     sum
 }
 
-pub fn count_amos(g: &Graph) -> Integer {
+pub fn count_amos(g: &Graph) -> BigUint {
     //if g.m == g.n-1 { return Integer::from(g.n); }
     //if g.m == g.n { return Integer::from(2*g.n); }
     //let num_possible_edges = g.n * (g.n - 1) / 2;
@@ -186,13 +187,13 @@ pub fn count_amos(g: &Graph) -> Integer {
 }
 
 // call count_amos for each connected component
-pub fn count_chordal(g: &Graph) -> Integer {
+pub fn count_chordal(g: &Graph) -> BigUint {
     let (components, _) = g.connected_components();
     components.iter().map(count_amos).product()
 }
 
 // remove directed edges and call count_chordal
-pub fn count_cpdag(g: &PartiallyDirectedGraph) -> Integer {
+pub fn count_cpdag(g: &PartiallyDirectedGraph) -> BigUint {
     let undirected_subgraph = g.undirected_subgraph();
     count_chordal(&undirected_subgraph)
 }
@@ -209,6 +210,8 @@ pub fn count_cpdag(g: &PartiallyDirectedGraph) -> Integer {
 
 #[cfg(test)]
 mod tests {
+    use num_bigint::ToBigUint;
+
     use crate::{graph::Graph, partially_directed_graph::PartiallyDirectedGraph};
 
     #[test]
@@ -229,7 +232,7 @@ mod tests {
             ],
             6,
         );
-        assert_eq!(super::count_amos(&g), 54);
+        assert_eq!(super::count_amos(&g), 54.to_biguint().unwrap());
     }
 
     #[test]
@@ -251,7 +254,7 @@ mod tests {
             ],
             9,
         );
-        assert_eq!(super::count_chordal(&g), 108);
+        assert_eq!(super::count_chordal(&g), 108.to_biguint().unwrap());
     }
 
     #[test]
@@ -274,6 +277,6 @@ mod tests {
             ],
             8,
         );
-        assert_eq!(super::count_cpdag(&g), 6);
+        assert_eq!(super::count_cpdag(&g), 6.to_biguint().unwrap());
     }
 }
