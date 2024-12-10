@@ -16,4 +16,4 @@ We provide the following implementations:
 - ```cliquepicking_rs/``` contains a recent Rust implementation for counting and sampling, which is cleaner and slightly more efficient (worst-case n^3)
 - ```cliquepicking_python/``` contains a Python wrapper for the Rust implementation. You can install and use the Python implementation easily via ```pip install cliquepicking```.
 
-Brief examples of how to install and use the implementations is given in the subdirectories.
+Brief examples of how to install and use the implementations are given in the subdirectories.
