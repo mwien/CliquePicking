@@ -8,9 +8,9 @@ The module provides the functions
 - ```mec_sample_dags(G, k)```, which returns k uniformly sampled DAGs from the MEC represented by CPDAG G
 - ```mec_sample_orders(G, k)``` which returns topological orders of k uniformly sampled DAGs from the MEC represented by CPDAG G
 
-Be aware that ```mec_sample_dags(G, k)``` holds (and returns) k DAGs in memory. (For large graphs) to avoid large memory usage, generate DAGs in smaller batches or use ```mec_sample_orders(G, k)```, which only returns the often much smaller topological order. 
+Be aware that ```mec_sample_dags(G, k)``` holds (and returns) k DAGs in memory. (For large graphs) to avoid high memory demand, generate DAGs in smaller batches or use ```mec_sample_orders(G, k)```, which only returns the easier-to-store topological order. 
 
-In all cases, G should be given as a edge list (vertices should be represented by zero indexed integers), which includes ```(a, b)``` and ```(b, a)``` for undirected edges $$a - b$$ and only ```(a, b)``` for directed edges $$a \rightarrow b$$. E.g.
+In all cases, G should be given as an edge list (vertices should be represented by zero-indexed integers), which includes ```(a, b)``` and ```(b, a)``` for undirected edges $a - b$ and only ```(a, b)``` for directed edges $a \rightarrow b$. E.g.
 
 ```python
 import cliquepicking as cp
@@ -58,3 +58,6 @@ sample_orders = cp.mec_sample_orders(list(G.edges), 5)
 for order in sample_orders:
     print(order)
 ```
+
+## Time Complexity
+The counting procedure has worst-case run-time $n^3$, with $n$ denoting the number of vertices of the input graph. This improves the asymptotic complexity from the literature based on the comment at the bottom of page 80 in my [thesis](https://mwien.github.io/thesis.pdf). That is, each recursive call is associated with a subtree of the clique-tree of $G$ shaving off a factor of $n$. By using global memoization the computations of function $\phi$ are also possible in this run-time. The general procedure is identical to the published algorithm. There are a few additional practical optimizations that do not further improve the worst-case run-time but make the algorithm faster in practice compared to previous implementations. 
