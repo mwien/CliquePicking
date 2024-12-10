@@ -5,7 +5,7 @@ Moreover, we give implementations of the polynomial-time algorithm for uniformly
 
 1. Marcel Wienöbst, Max Bannach, and Maciej Liśkiewicz: *Polynomial-Time Algorithms for Counting and Sampling Markov Equivalent DAGs* (AAAI 2021) [arXiv version](https://arxiv.org/abs/2012.09679)
 2. Marcel Wienöbst, Max Bannach, and Maciej Liśkiewicz: *Polynomial-Time Algorithms for Counting and Sampling Markov Equivalent DAGs with Applications* [(JMLR)](https://www.jmlr.org/papers/v24/22-0495.html)
-3. Marcel Wienöbst: *Algorithms for Markov Equivalence* [Thesis](https://mwien.github.io/thesis.pdf)
+3. Marcel Wienöbst: *Algorithms for Markov Equivalence* [(PhD Thesis)](https://mwien.github.io/thesis.pdf)
 
 ## Implementations
 
