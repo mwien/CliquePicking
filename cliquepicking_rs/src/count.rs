@@ -114,7 +114,7 @@ fn count(
             if !flower.contains(u) || !flower.contains(v) {
                 break;
             }
-            assert!(size > separator.len()); // TODO: maybe equality can occur
+            assert!(size > separator.len()); // TODO: potentially, equality can occur
             forbidden_sizes.push(size - separator.len());
         }
         let phi = combinatorics::rho(&forbidden_sizes, memoization);
@@ -147,12 +147,26 @@ fn count(
 }
 
 pub fn count_amos(g: &Graph) -> BigUint {
-    //if g.m == g.n-1 { return Integer::from(g.n); }
-    //if g.m == g.n { return Integer::from(2*g.n); }
-    //let num_possible_edges = g.n * (g.n - 1) / 2;
-    //if g.m == num_possible_edges - 2 { return (g.n * (g.n-1) - 4) * combinatorics::factorial(g.n-3, &mut Memoization::new(0, g.n)); }
-    //if g.m == num_possible_edges - 1 { return (2 * g.n - 3) * combinatorics::factorial(g.n-2, &mut Memoization::new(0, g.n)); }
-    //if g.m == num_possible_edges { return combinatorics::factorial(g.n, &mut Memoization::new(0, g.n)); }
+    // some special cases, which can be handled immediately
+    // see Thm 3 in https://jmlr.org/papers/v16/he15a.html
+    if g.m == g.n - 1 {
+        return BigUint::from(g.n);
+    }
+    if g.m == g.n {
+        return BigUint::from(2 * g.n);
+    }
+    let num_possible_edges = g.n * (g.n - 1) / 2;
+    if g.m == num_possible_edges - 2 {
+        return (g.n * (g.n - 1) - 4)
+            * combinatorics::factorial(g.n - 3, &mut vec![BigUint::ZERO; g.n + 1]);
+    }
+    if g.m == num_possible_edges - 1 {
+        return (2 * g.n - 3)
+            * combinatorics::factorial(g.n - 2, &mut vec![BigUint::ZERO; g.n + 1]);
+    }
+    if g.m == num_possible_edges {
+        return combinatorics::factorial(g.n, &mut vec![BigUint::ZERO; g.n + 1]);
+    }
 
     // compute the clique tree of G
     let clique_tree = CliqueTree::from(g);
