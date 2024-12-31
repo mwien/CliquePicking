@@ -444,6 +444,7 @@ pub fn sample_chordal(g: &Graph, k: usize) -> Vec<DirectedGraph> {
 }
 
 // there are unnecessary allocations/conversions here, maybe optimize this at some point
+// maybe call "sample_from_cpdag"
 pub fn sample_cpdag(g: &PartiallyDirectedGraph, k: usize) -> Vec<DirectedGraph> {
     let undirected_subgraph = g.undirected_subgraph();
     let directed_subgraph = g.directed_subgraph();

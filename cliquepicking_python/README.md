@@ -7,8 +7,14 @@ The module provides the functions
 - ```mec_size(G)```, which outputs the number of DAGs in the MEC represented by CPDAG G
 - ```mec_sample_dags(G, k)```, which returns k uniformly sampled DAGs from the MEC represented by CPDAG G
 - ```mec_sample_orders(G, k)``` which returns topological orders of k uniformly sampled DAGs from the MEC represented by CPDAG G
+- ```mec_list_dags(G)```, which returns a list of all DAGs in the MEC represented by CPDAG G
+- ```mec_list_orders(G)```, which returns topological orders of all DAGs in the MEC represented by CPDAG G
+
+The DAGs are returned as edge lists and they can be read e.g. in networkx using ```nx.DiGraph(dag)``` (see the example at the bottom).
 
 Be aware that ```mec_sample_dags(G, k)``` holds (and returns) k DAGs in memory. (For large graphs) to avoid high memory demand, generate DAGs in smaller batches or use ```mec_sample_orders(G, k)```, which only returns the easier-to-store topological order. 
+
+The same holds for ```mec_list_dags(G)```, consider checking the size of the MEC using ```mec_size(G)``` before calling this method.
 
 In all cases, G should be given as an edge list (vertices should be represented by zero-indexed integers), which includes ```(a, b)``` and ```(b, a)``` for undirected edges $a - b$ and only ```(a, b)``` for directed edges $a \rightarrow b$. E.g.
 

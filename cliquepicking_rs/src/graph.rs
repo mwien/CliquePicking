@@ -46,6 +46,16 @@ impl Graph {
         }
     }
 
+    pub fn to_edge_list(&self) -> Vec<(usize, usize)> {
+        let mut edge_list = Vec::new();
+        for u in 0..self.n {
+            for &v in self.neighbors(u) {
+                edge_list.push((u, v));
+            }
+        }
+        edge_list
+    }
+
     pub fn neighbors(&self, u: usize) -> std::slice::Iter<'_, usize> {
         self.neighbors[u].iter()
     }

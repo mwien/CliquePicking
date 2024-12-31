@@ -1,5 +1,6 @@
 pub mod count;
 pub mod directed_graph;
+pub mod enumerate;
 pub mod graph;
 pub mod partially_directed_graph;
 pub mod sample;
