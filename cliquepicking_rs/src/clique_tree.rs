@@ -118,32 +118,30 @@ impl CliqueTree {
             for &t in self.tree.neighbors(s) {
                 let edge_id = self.get_edge_id(s, t);
                 let st_sep = &separators[edge_id];
-                if flowers[edge_id].is_empty() {
-                    let mut flower = Vec::new();
-                    flower.push(t);
-                    visited[s] = true;
-                    visited[t] = true;
-                    let mut q = VecDeque::new();
-                    q.push_back(t);
-                    while !q.is_empty() {
-                        let u = q.pop_front().unwrap();
-                        for &v in self.tree.neighbors(u) {
-                            if !visited[v]
-                                && st_sep.is_subset(&self.cliques[v])
-                                && separators[self.get_edge_id(u, v)] != *st_sep
-                            {
-                                flower.push(v);
-                                visited[v] = true;
-                                q.push_back(v);
-                            }
+                let mut flower = Vec::new();
+                flower.push(t);
+                visited[s] = true;
+                visited[t] = true;
+                let mut q = VecDeque::new();
+                q.push_back(t);
+                while !q.is_empty() {
+                    let u = q.pop_front().unwrap();
+                    for &v in self.tree.neighbors(u) {
+                        if !visited[v]
+                            && st_sep.is_subset(&self.cliques[v])
+                            && separators[self.get_edge_id(u, v)] != *st_sep
+                        {
+                            flower.push(v);
+                            visited[v] = true;
+                            q.push_back(v);
                         }
                     }
-                    visited[s] = false;
-                    for &f in &flower {
-                        visited[f] = false;
-                    }
-                    flowers[edge_id] = IndexSet::from(flower.clone());
                 }
+                visited[s] = false;
+                for &f in &flower {
+                    visited[f] = false;
+                }
+                flowers[edge_id] = IndexSet::from(flower.clone());
             }
         }
         flowers
