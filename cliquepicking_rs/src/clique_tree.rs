@@ -121,8 +121,6 @@ impl CliqueTree {
                 if flowers[edge_id].is_empty() {
                     let mut flower = Vec::new();
                     flower.push(t);
-                    let mut add_ids = Vec::new();
-                    add_ids.push(edge_id);
                     visited[s] = true;
                     visited[t] = true;
                     let mut q = VecDeque::new();
@@ -130,14 +128,13 @@ impl CliqueTree {
                     while !q.is_empty() {
                         let u = q.pop_front().unwrap();
                         for &v in self.tree.neighbors(u) {
-                            if !visited[v] && st_sep.is_subset(&self.cliques[v]) {
-                                if separators[self.get_edge_id(u, v)] == *st_sep {
-                                    add_ids.push(self.get_edge_id(u, v));
-                                } else {
-                                    flower.push(v);
-                                    visited[v] = true;
-                                    q.push_back(v);
-                                }
+                            if !visited[v]
+                                && st_sep.is_subset(&self.cliques[v])
+                                && separators[self.get_edge_id(u, v)] != *st_sep
+                            {
+                                flower.push(v);
+                                visited[v] = true;
+                                q.push_back(v);
                             }
                         }
                     }
@@ -145,9 +142,7 @@ impl CliqueTree {
                     for &f in &flower {
                         visited[f] = false;
                     }
-                    for &id in &add_ids {
-                        flowers[id] = IndexSet::from(flower.clone());
-                    }
+                    flowers[edge_id] = IndexSet::from(flower.clone());
                 }
             }
         }
