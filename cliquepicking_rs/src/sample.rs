@@ -530,11 +530,10 @@ pub fn sample_cpdag_orders(g: &PartiallyDirectedGraph, k: usize) -> Vec<Vec<usiz
 mod tests {
     use std::collections::{HashMap, HashSet};
 
-    use crate::graph::Graph;
+    use crate::{graph::Graph, partially_directed_graph::PartiallyDirectedGraph};
 
-    #[test]
-    fn sample_amos_basic_check() {
-        let g = Graph::from_edge_list(
+    fn get_paper_graph() -> Graph {
+        Graph::from_edge_list(
             vec![
                 (0, 1),
                 (0, 2),
@@ -549,7 +548,74 @@ mod tests {
                 (4, 5),
             ],
             6,
-        );
+        )
+    }
+
+    fn get_issue4_graph() -> PartiallyDirectedGraph {
+        PartiallyDirectedGraph::from_edge_list(
+            vec![
+                (0, 1),
+                (1, 0),
+                (0, 2),
+                (2, 0),
+                (1, 2),
+                (2, 1),
+                (1, 3),
+                (3, 1),
+                (1, 4),
+                (4, 1),
+            ],
+            5,
+        )
+    }
+
+    fn get_issue5_graph() -> PartiallyDirectedGraph {
+        PartiallyDirectedGraph::from_edge_list(
+            vec![
+                (9, 10),
+                (9, 13),
+                (9, 7),
+                (10, 9),
+                (10, 11),
+                (10, 12),
+                (13, 9),
+                (4, 5),
+                (4, 12),
+                (5, 4),
+                (0, 1),
+                (0, 3),
+                (1, 0),
+                (1, 19),
+                (6, 7),
+                (6, 14),
+                (6, 19),
+                (7, 6),
+                (7, 9),
+                (7, 8),
+                (14, 6),
+                (14, 15),
+                (8, 7),
+                (8, 19),
+                (16, 15),
+                (16, 18),
+                (16, 17),
+                (15, 16),
+                (15, 14),
+                (18, 16),
+                (18, 19),
+                (11, 10),
+                (11, 19),
+                (3, 17),
+                (3, 19),
+                (2, 3),
+            ],
+            5,
+        )
+    }
+
+    #[test]
+    fn sample_amos_basic_check() {
+        let g = get_paper_graph();
         let sample_size = 10_000;
         let amos = super::sample_amos(&g, sample_size);
         assert_eq!(amos.len(), sample_size);
@@ -567,4 +633,28 @@ mod tests {
         }
         assert_eq!(dags.len(), 54);
     }
+
+    #[test]
+    fn sample_cpdag_basic_check() {
+        let g = get_issue4_graph();
+        let sample_size = 10_000;
+        let dags = super::sample_cpdag(&g, sample_size);
+        assert_eq!(dags.len(), sample_size);
+        let mut count_dags = HashMap::new();
+        for a in dags.iter() {
+            count_dags.entry(a).and_modify(|cnt| *cnt += 1).or_insert(1);
+        }
+        assert_eq!(count_dags.len(), 10);
+        let g = get_issue5_graph();
+        let sample_size = 10_000;
+        let dags = super::sample_cpdag(&g, sample_size);
+        assert_eq!(dags.len(), sample_size);
+        let mut count_dags = HashMap::new();
+        for a in dags.iter() {
+            count_dags.entry(a).and_modify(|cnt| *cnt += 1).or_insert(1);
+        }
+        assert_eq!(count_dags.len(), 44);
+    }
+
+    // TODO: test orders as well
 }
