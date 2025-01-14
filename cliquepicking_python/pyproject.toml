@@ -11,7 +11,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 authors = [{name = "Marcel Wienöbst"}]
-description = "Counting and Sampling Markov Equivalent DAGs"
+description = "Counting, Sampling and Listing Markov Equivalent DAGs"
 keywords = ["causality", "causal discovery", "markov equivalence"]
 dynamic = ["version"]
 
