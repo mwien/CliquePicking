@@ -22,7 +22,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "cliquepicking"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "cliquepicking_rs",
  "num-bigint",
@@ -31,7 +31,7 @@ dependencies = [
 
 [[package]]
 name = "cliquepicking_rs"
-version = "0.1.0"
+version = "0.2.5"
 dependencies = [
  "num-bigint",
  "num-traits",
