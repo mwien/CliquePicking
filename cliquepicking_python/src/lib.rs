@@ -1,11 +1,10 @@
+use cliquepicking_rs::sample::CpdagSampler;
 use pyo3::prelude::*;
 
 use cliquepicking_rs::count::count_cpdag;
 use cliquepicking_rs::enumerate::list_cpdag;
 use cliquepicking_rs::enumerate::list_cpdag_orders;
 use cliquepicking_rs::partially_directed_graph::PartiallyDirectedGraph;
-use cliquepicking_rs::sample::sample_cpdag;
-use cliquepicking_rs::sample::sample_cpdag_orders;
 
 use num_bigint::BigUint;
 
@@ -13,8 +12,7 @@ use num_bigint::BigUint;
 #[pymodule]
 fn cliquepicking(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(mec_size, m)?)?;
-    m.add_function(wrap_pyfunction!(mec_sample_dags, m)?)?;
-    m.add_function(wrap_pyfunction!(mec_sample_orders, m)?)?;
+    m.add_class::<MecSampler>()?;
     m.add_function(wrap_pyfunction!(mec_list_dags, m)?)?;
     m.add_function(wrap_pyfunction!(mec_list_orders, m)?)?;
     Ok(())
@@ -29,24 +27,25 @@ fn mec_size(cpdag: Vec<(usize, usize)>) -> PyResult<BigUint> {
     Ok(res)
 }
 
-/// Sample k DAGs uniformly from the Markov equivalence class represented by CPDAG cpdag.
-#[pyfunction]
-fn mec_sample_dags(cpdag: Vec<(usize, usize)>, k: usize) -> PyResult<Vec<Vec<(usize, usize)>>> {
-    let mx = max_element(&cpdag);
-    let g = PartiallyDirectedGraph::from_edge_list(cpdag, mx + 1);
-    let samples = sample_cpdag(&g, k)
-        .into_iter()
-        .map(|sample| sample.to_edge_list())
-        .collect();
-    Ok(samples)
-}
+#[pyclass]
+struct MecSampler(CpdagSampler);
 
-/// Sample k DAGs (represented by a topological order) uniformly from the Markov equivalence class represented by CPDAG cpdag.
-#[pyfunction]
-fn mec_sample_orders(cpdag: Vec<(usize, usize)>, k: usize) -> PyResult<Vec<Vec<usize>>> {
-    let mx = max_element(&cpdag);
-    let g = PartiallyDirectedGraph::from_edge_list(cpdag, mx + 1);
-    Ok(sample_cpdag_orders(&g, k))
+#[pymethods]
+impl MecSampler {
+    #[new]
+    fn new(cpdag: Vec<(usize, usize)>) -> Self {
+        let mx = max_element(&cpdag);
+        let g = PartiallyDirectedGraph::from_edge_list(cpdag, mx + 1);
+        MecSampler(CpdagSampler::init(&g))
+    }
+
+    fn sample_dag(&self) -> Vec<(usize, usize)> {
+        self.0.sample_dag(&mut rand::thread_rng()).to_edge_list()
+    }
+
+    fn sample_order(&self) -> Vec<usize> {
+        self.0.sample_order(&mut rand::thread_rng())
+    }
 }
 
 /// List all DAGs from the Markov equivalence class represented by CPDAG cpdag.

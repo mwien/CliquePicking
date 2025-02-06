@@ -5,16 +5,16 @@ You can install the cliquepicking module with ```pip install cliquepicking```.
 The module provides the functions
 
 - ```mec_size(G)```, which outputs the number of DAGs in the MEC represented by CPDAG G
-- ```mec_sample_dags(G, k)```, which returns k uniformly sampled DAGs from the MEC represented by CPDAG G
-- ```mec_sample_orders(G, k)``` which returns topological orders of k uniformly sampled DAGs from the MEC represented by CPDAG G
 - ```mec_list_dags(G)```, which returns a list of all DAGs in the MEC represented by CPDAG G
 - ```mec_list_orders(G)```, which returns topological orders of all DAGs in the MEC represented by CPDAG G
+
+and the class ```MecSampler```, which can be constructed with ```MecSampler(G)``` and has the methods ```sample_dag()``` and ```sample_order()```, which produce a single DAG (or its topological order) from the MEC represented by CPDAG G. Repeatedly calling these methods is computationally cheap compared to initially constructing the sampler. 
 
 The DAGs are returned as edge lists and they can be read e.g. in networkx using ```nx.DiGraph(dag)``` (see the example at the bottom).
 
 Be aware that ```mec_sample_dags(G, k)``` holds (and returns) k DAGs in memory. (For large graphs) to avoid high memory demand, generate DAGs in smaller batches or use ```mec_sample_orders(G, k)```, which only returns the easier-to-store topological order. 
 
-The same holds for ```mec_list_dags(G)```, consider checking the size of the MEC using ```mec_size(G)``` before calling this method.
+Be aware that ```mec_list_dags(G)``` holds in memory (and returns) all DAGs in the MEC. For large MECs this can lead to out-of-memory errors, so consider checking the size of the MEC using ```mec_size(G)``` before calling this method.
 
 In all cases, G should be given as an edge list (vertices should be represented by zero-indexed integers), which includes ```(a, b)``` and ```(b, a)``` for undirected edges $a - b$ and only ```(a, b)``` for directed edges $a \rightarrow b$. E.g.
 
@@ -57,12 +57,13 @@ G.add_edge(4, 3)
 G.add_edge(4, 5)
 G.add_edge(5, 4)
 print(cp.mec_size(list(G.edges)))
-sample_dags = cp.mec_sample_dags(list(G.edges), 5)
-for dag in sample_dags:
-    print(nx.DiGraph(dag))
-sample_orders = cp.mec_sample_orders(list(G.edges), 5)
-for order in sample_orders:
-    print(order)
+
+sampler = cp.MecSampler(list(G.edges))
+for _i in range(5):
+    print(nx.DiGraph(sampler.sample_dag()))
+
+for _i in range(5):
+    print(sampler.sample_order())
 ```
 
 ## Time Complexity
