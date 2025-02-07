@@ -25,9 +25,10 @@ G.add_edge(4, 3)
 G.add_edge(4, 5)
 G.add_edge(5, 4)
 print(cp.mec_size(list(G.edges)))
-sample_dags = cp.mec_sample_dags(list(G.edges), 5)
-for dag in sample_dags:
-    print(nx.DiGraph(dag))
-sample_orders = cp.mec_sample_orders(list(G.edges), 5)
-for order in sample_orders:
-    print(order)
+
+sampler = cp.MecSampler(list(G.edges))
+for _ in range(5):
+    print(nx.DiGraph(sampler.sample_dag()))
+
+for _ in range(5):
+    print(sampler.sample_order())
