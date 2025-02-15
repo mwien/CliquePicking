@@ -1,6 +1,6 @@
 # Clique-Picking
 
-This repository provides functionality for working with CPDAGs, which are graphs representing Markov equivalence classes (MEC) of DAGs common in causal discovery. Currently, it focuses mostly on algorithms for counting, sampling and listing the DAGs in the MEC represented by a given CPDAG based on [[3]](https://mwien.github.io/thesis.pdf). 
+This repository provides functionality for working with CPDAGs, which are graphs representing Markov equivalence classes (MEC) of DAGs common in causal discovery. Currently, it focuses mostly on algorithms for counting, sampling and listing the DAGs in the MEC represented by a given CPDAG based on [[3]](https://epub.uni-luebeck.de/items/44cd6c2b-c86a-40bc-aef2-669310429ac6). 
 
 The algorithms are implemented in Rust and exposed via an Python wrapper available as PyPI package ```cliquepicking```. An R wrapper is planned.
 
@@ -23,4 +23,4 @@ The ```prototypes/``` directory contains code I originally wrote in the context 
 ## References
 1. Marcel Wienöbst, Max Bannach, and Maciej Liśkiewicz: *Polynomial-Time Algorithms for Counting and Sampling Markov Equivalent DAGs* (AAAI 2021) [arXiv version](https://arxiv.org/abs/2012.09679)
 2. Marcel Wienöbst, Max Bannach, and Maciej Liśkiewicz: *Polynomial-Time Algorithms for Counting and Sampling Markov Equivalent DAGs with Applications* [(JMLR)](https://www.jmlr.org/papers/v24/22-0495.html)
-3. Marcel Wienöbst: *Algorithms for Markov Equivalence* [(PhD Thesis)](https://mwien.github.io/thesis.pdf)
+3. Marcel Wienöbst: *Algorithms for Markov Equivalence* [(PhD Thesis)](https://epub.uni-luebeck.de/items/44cd6c2b-c86a-40bc-aef2-669310429ac6)
