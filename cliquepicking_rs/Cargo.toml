@@ -1,11 +1,11 @@
 [package]
 name = "cliquepicking_rs"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rand = "0.8"
-num-bigint = { version = "0.4.6", features = ["rand"] }
-num-traits = "0.2.19"
+num-bigint = { version = "0.4", features = ["rand"] }
+num-traits = "0.2"
