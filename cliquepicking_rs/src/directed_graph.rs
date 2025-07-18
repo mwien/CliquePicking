@@ -1,4 +1,5 @@
 use crate::index_set::IndexSet;
+use crate::partially_directed_graph::PartiallyDirectedGraph;
 use crate::utils;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -79,5 +80,83 @@ impl DirectedGraph {
         }
         ord.reverse();
         ord
+    }
+
+    /// Finds the CPDAG (aka essential graph) of a given DAG. This methods implements the
+    /// algorithm given by Chickering (1995) in a way such that it runs in worst-case linear time
+    /// (the original algorithm has expected linear run-time due to relying on hash tables for
+    /// adjacency checks).
+    pub fn to_cpdag(&self) -> PartiallyDirectedGraph {
+        let mut edge_list = Vec::new();
+
+        let top_order = self.topological_order();
+        // parents ordered according to top_order
+        let mut parents = vec![Vec::new(); self.n];
+        for &u in top_order.iter() {
+            for &v in self.outneighbors(u) {
+                parents[v].push(u);
+            }
+        }
+
+        // let closest parent of v be C(v), then we check for each v
+        // whether there is a v-structure C(v) -> v <- z for some z
+        // closest_in_vs stores this info
+        let mut closest_in_vs = vec![false; self.n];
+        // child_in_flag is re-usable memory for lookup of children
+        let mut child_flag = vec![usize::MAX; self.n];
+
+        for z in 0..self.n {
+            for &y in self.outneighbors(z) {
+                child_flag[y] = z;
+            }
+
+            for &y in self.outneighbors(z) {
+                // x is closest parent of y in top_order
+                if let Some(&x) = parents[y].last() {
+                    // in the future: use let chains to merge the ifs
+                    if x != z && child_flag[x] != z {
+                        closest_in_vs[y] = true;
+                    }
+                }
+            }
+        }
+
+        // tracks compelled parents
+        let mut compelled_parents = vec![Vec::new(); self.n];
+        // re-usable memory for lookup of compelled parents
+        let mut compelled_flag = vec![usize::MAX; self.n];
+        // re-usable memory for lookup of parents
+        let mut parent_flag = vec![usize::MAX; self.n];
+
+        for y in top_order {
+            if parents[y].is_empty() {
+                continue;
+            }
+            // x is closest parent of y in top_order
+            let x = *parents[y].last().unwrap();
+            if closest_in_vs[y] {
+                parents[y].iter().for_each(|&u| compelled_flag[u] = y);
+            } else {
+                parents[y].iter().for_each(|&w| parent_flag[w] = y);
+                for &w in compelled_parents[x].iter() {
+                    if parent_flag[w] != y {
+                        parents[y].iter().for_each(|&u| compelled_flag[u] = y);
+                        break;
+                    } else {
+                        compelled_flag[w] = y;
+                    }
+                }
+            }
+            for &u in parents[y].iter() {
+                if compelled_flag[u] == y {
+                    compelled_parents[y].push(u);
+                    edge_list.push((u, y));
+                } else {
+                    edge_list.push((u, y));
+                    edge_list.push((y, u));
+                }
+            }
+        }
+        PartiallyDirectedGraph::from_edge_list(edge_list, self.n)
     }
 }
